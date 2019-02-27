@@ -27,6 +27,7 @@ export class Notifications extends React.Component<Props, State> {
   }
 
   componentWillMount() {
+    console.log('Component will mount!');
     this.fetchNotifications();
   }
 
@@ -35,26 +36,31 @@ export class Notifications extends React.Component<Props, State> {
     const eliminate = `${title.substr(0, title.indexOf(') '))})`;
     title = title.replace(eliminate, '');
     window.document.title = count === 0 ? title : `(${count}) ${title}`;
+    console.log('Changing title', window.document.title);
   };
 
   getPusherKey = (signedInKey: number) => {
     this.setState({ signedInKey });
     const metaPusherKey = Array.from(
-      window.document.getElementsByTagName('meta'),
+      window.document.getElementsByTagName('meta')
     ).filter(item => item.getAttribute('name') === 'pusher-key')[0];
     const pusherKey = metaPusherKey.getAttribute('content');
     const pusher = new window.Pusher(pusherKey, { encrypted: true });
     const channel = pusher.subscribe(`private-${signedInKey}`);
+    console.log('Getting pusher key?');
     channel.bind('new_notification', (response: any) => {
       if (response && response.data) {
+        console.log('Got response');
         this.fetchNotifications();
       }
     });
   };
 
   setBody = (notifications: string[]) => {
+    console.log('Setting up the body elements');
     let updatedNotifications = '';
     notifications.forEach((item: string) => {
+      console.log('Adding notification', item);
       updatedNotifications += `<div>${item}</div>`;
     });
     this.setState({ notifications: updatedNotifications });
@@ -62,6 +68,7 @@ export class Notifications extends React.Component<Props, State> {
 
   fetchNotifications = () => {
     const { alreadyMounted, signedInKey } = this.state;
+    console.log('Fetching notifications...');
     axios
       .get('/notifications/signed_in')
       .then((response: any) => {
@@ -69,6 +76,7 @@ export class Notifications extends React.Component<Props, State> {
           if (response.data.signed_in !== signedInKey) {
             this.getPusherKey(response.data.signed_in);
           }
+          console.log('Confirmed logged in and connection all good');
           return axios.get('/notifications/fetch_notifications');
         }
         return -1;
@@ -78,6 +86,7 @@ export class Notifications extends React.Component<Props, State> {
           this.changeTitle(response.data.fetch_notifications.length);
           this.setBody(response.data.fetch_notifications);
           if (!alreadyMounted && response.data.fetch_notifications.length > 0) {
+            console.log('Already displayed?');
             this.setState({
               alreadyMounted: true,
               open: true,
@@ -89,11 +98,13 @@ export class Notifications extends React.Component<Props, State> {
   };
 
   clearNotifications = () => {
+    console.log('Attempting to clear notifications');
     axios.delete('/notifications/clear').then((response: any) => {
       if (response) {
         this.changeTitle(0);
         this.setState({ open: false, modalKey: Utils.randomString() });
         this.fetchNotifications();
+        console.log('Cleared notification');
       }
     });
   };
@@ -101,6 +112,7 @@ export class Notifications extends React.Component<Props, State> {
   displayNotifications = () => {
     const { clear } = this.props;
     const { notifications } = this.state;
+    console.log('Displaying notifications');
     return (
       <div>
         {renderHTML(notifications)}
@@ -118,6 +130,7 @@ export class Notifications extends React.Component<Props, State> {
   render() {
     const { element, plural, none } = this.props;
     const { notifications, open, modalKey } = this.state;
+    console.log('Rendering notifications', this.props);
     return (
       <Modal
         element={element}
